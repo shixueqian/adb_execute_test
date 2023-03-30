@@ -35,12 +35,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String? macAdbPath1;
-  String? macAdbPath2;
-  String? winAdbPath;
-
-  final shell = Shell();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,74 +46,116 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             TextButton(
-              onPressed: () {
-                //App的可执行文件路径
+              onPressed: () async {
+                // MacOS：在Flutter中导入文件的获取方式
+                // 方法：
+                //   1.文件夹放到工程根目录下
+                //   2.pubspec.yaml文件声明资源文件
+                //      assets:
+                //          - platform-tools/MacOS/
+                // 安装后文件路径：Contents/Frameworks/App.framework/Resources/flutter_assets/platform-tools/MacOS/adb
+
+                // App的可执行文件路径
                 String resolvedExecutablePath = Platform.resolvedExecutable;
+                // 找到安装包根目录
+                String rootPath = p.dirname(p.dirname(resolvedExecutablePath));
+                // 定位到adb文件路径
+                final adbPath = p.join(
+                    rootPath,
+                    "Frameworks",
+                    "App.framework",
+                    "Resources",
+                    "flutter_assets",
+                    "platform-tools",
+                    "MacOS",
+                    "adb");
+                debugPrint("MacOS:Flutter导入文件 adbPath=$adbPath");
+                // 运行adb命令
+                try {
+                  await Shell().runExecutableArguments(adbPath, ["--version"]);
+                } catch (e) {
+                  debugPrint("exec catch exception=$e");
+                }
+              },
+              child: const Text("MacOS:Flutter导入文件"),
+            ),
+            TextButton(
+              onPressed: () async {
+                // MacOS：在Xcode中导入文件
+                // 方法：
+                //   1.将文件拷贝到macos/Runner/目录下
+                //   2.用Xcode打开macos目录下的Runner.xcworkspace文件
+                //   3.Xcode中选中左侧Runner目录后，右键 -> Add Files to "Runner"...
+                //   4.在弹出框里面选择你要导入的文件，点击Add即可。
+                // 安装后文件路径：Contents/Resources/platform-tools/adb
 
-                if (Platform.isMacOS) {
-                  // 1.MacOS：在Xcode中导入文件的获取方式
-                  String rootPath =
-                      p.dirname(p.dirname(resolvedExecutablePath));
-                  debugPrint("rootPath=$rootPath");
-                  macAdbPath1 =
-                      p.join(rootPath, "Resources", "platform-tools", "adb");
-                  // adb_execute_test.app/Contents/Resources/platform-tools/adb
-                  debugPrint("macAdbPath1=$macAdbPath1");
+                // App的可执行文件路径
+                String resolvedExecutablePath = Platform.resolvedExecutable;
+                // 找到安装包根目录
+                String rootPath = p.dirname(p.dirname(resolvedExecutablePath));
+                debugPrint("rootPath=$rootPath");
+                // 定位到adb文件路径
+                final adbPath =
+                    p.join(rootPath, "Resources", "platform-tools", "adb");
+                debugPrint("MacOS：在Xcode中导入文件 adbPath=$adbPath");
+                // 运行adb命令
+                try {
+                  await Shell().runExecutableArguments(adbPath, ["--version"]);
+                } catch (e) {
+                  debugPrint("exec catch exception=$e");
+                }
+              },
+              child: const Text("MacOS：在Xcode中导入文件"),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Windows: 在Flutter中导入文件
+                // 方法：
+                //  1.文件夹放到工程根目录
+                //  2.pubspec.yaml文件声明资源文件
+                //    assets:
+                //        - platform-tools/Windows/
+                // 安装后文件路径：data\flutter_assets\platformTools\Windows\adb.exe
 
-                  // 2.MacOS：在Flutter中导入文件的获取方式
-                  macAdbPath2 = p.join(
-                      rootPath,
-                      "Frameworks",
-                      "App.framework",
-                      "Resources",
-                      "flutter_assets",
-                      "platform-tools",
-                      "MacOS",
-                      "adb");
-                  // adb_execute_test.app/Contents/Frameworks/App.framework/Resources/flutter_assets/platform-tools/MacOS/adb
-                  debugPrint("macAdbPath2=$macAdbPath2");
-                } else if (Platform.isWindows) {
-                  // 3.Windows:在Flutter中导入文件的获取方式
-                  String rootPath = p.dirname(resolvedExecutablePath);
-                  final winAdbPath = p.join(rootPath, "data", "flutter_assets",
-                      "platformTools", "Windows", "adb.exe");
-                  // data\flutter_assets\platformTools\Windows\adb.exe
-                  debugPrint("winAdbPath=$winAdbPath");
-                }
-              },
-              child: const Text("获取adb文件路径"),
-            ),
-            TextButton(
-              onPressed: () async {
+                // App的可执行文件路径
+                String resolvedExecutablePath = Platform.resolvedExecutable;
+                String rootPath = p.dirname(resolvedExecutablePath);
+                // 定位到adb文件路径
+                final adbPath = p.join(rootPath, "data", "flutter_assets",
+                    "platform-tools", "Windows", "adb.exe");
+                debugPrint("Windows:在CMake里直接拷贝资源到安装包 adbPath=$adbPath");
+                // 运行adb命令
                 try {
-                  await shell.runExecutableArguments(macAdbPath1!, ["devices"]);
+                  await Shell().runExecutableArguments(adbPath, ["--version"]);
                 } catch (e) {
                   debugPrint("exec catch exception=$e");
                 }
               },
-              child: const Text("macAdbPath1:执行adb --version"),
+              child: const Text("Windows:在Flutter中导入文件"),
             ),
             TextButton(
               onPressed: () async {
+                // Windows:在CMake里直接拷贝资源到安装包
+                // 方法：
+                //  1.文件加放到windows目录
+                //  2.设置windows/CMakeLists.txt文件。在文件最后一个install方法的前面，加上下面的代码
+                //    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+                // 安装后文件路径：platform-tools\adb.exe
+
+                // App的可执行文件路径
+                String resolvedExecutablePath = Platform.resolvedExecutable;
+                String rootPath = p.dirname(resolvedExecutablePath);
+                // 定位到adb文件路径
+                final adbPath = p.join(rootPath, "platform-tools", "adb.exe");
+                debugPrint("Windows:在CMake里直接拷贝资源到安装包 adbPath=$adbPath");
+                // 运行adb命令
                 try {
-                  await shell
-                      .runExecutableArguments(macAdbPath2!, ["--version"]);
+                  await Shell().runExecutableArguments(adbPath, ["--version"]);
                 } catch (e) {
                   debugPrint("exec catch exception=$e");
                 }
               },
-              child: const Text("macAdbPath2:执行adb --version"),
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await shell
-                      .runExecutableArguments(winAdbPath!, ["--version"]);
-                } catch (e) {
-                  debugPrint("exec catch exception=$e");
-                }
-              },
-              child: const Text("winAdbPath:执行adb --version"),
+              child: const Text("Windows:在CMake里直接拷贝资源到安装包"),
             ),
           ],
         ),
